@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  InstanceType:
+    Type: String
+    Description: EC2 instance type
+    Default: t2.micro
+Resources:
+  CronInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-12345678 # Specify the appropriate AMI ID for your region and instance type
+      KeyName: my-key-pair # Specify the keyName
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Install necessary packages for the cron job
+          yum update -y
+          yum install -y awscli
+
+          # Create a variable and update it every 8 hours 
+          # (cron jobs)
+          echo 'counter=0' >> /home/ec2-user/variables.sh 
+          echo 'while true; do' >> /home/ec2-user/variables.sh
+          echo '  counter=$((counter+1))' >> /home/ec2-user/variables.sh
+          echo '  sleep 8h' >> /home/ec2-user/variables.sh
+          echo 'done' >> /home/ec2-user/variables.sh
+
+  MongoDBInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-12345678 # Specify the appropriate AMI ID for your region and instance type
+      KeyName: my-key-pair  # Specify the keyName
+      UserData: !Base64 |
+        #!/bin/bash
+        # Install MongoDB
+        echo "[mongodb-org-4.4]
+        name=MongoDB Repository
+        baseurl=https://repo.mongodb.org/yum/amazon/2/mongodb-org/4.4/x86_64/
+        gpgcheck=1
+        enabled=1
+        gpgkey=https://www.mongodb.org/static/pgp/server-4.4.asc" | tee /etc/yum.repos.d/mongodb-org-4.4.repo
+        yum install -y mongodb-org
+
+        # Start MongoDB service
+        systemctl start mongod
+        systemctl enable mongod
